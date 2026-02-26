@@ -1,29 +1,28 @@
-node {
-
-    docker.image('maven:3.9.9-eclipse-temurin-17').inside {
-
-        try {
-
-            stage('Build') {
+pipeline {
+    agent any
+    options {
+        skipStagesAfterUnstable()
+    }
+    stages {
+        stage('Build') {
+            steps {
                 sh 'mvn -B -DskipTests clean package'
             }
-
-            stage('Test') {
-                try {
-                    sh 'mvn test'
-                } finally {
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+            post {
+                always {
                     junit 'target/surefire-reports/*.xml'
                 }
             }
-
-            stage('Deliver') {
+        }
+        stage('Deliver') {
+            steps {
                 sh './jenkins/scripts/deliver.sh'
             }
-
-        } catch (err) {
-            currentBuild.result = 'FAILURE'
-            throw err
         }
-
     }
 }
