@@ -1,25 +1,26 @@
 node {
 
-    withEnv(["CI=true"]) {
+    try {
 
-        docker.image('node:lts-buster-slim').inside('-p 3000:3000') {
-
-            stage('Build') {
-                sh 'npm install'
-            }
-
-            stage('Test') {
-                sh './jenkins/scripts/test.sh'
-            }
-
-            stage('Deliver') {
-                sh './jenkins/scripts/deliver.sh'
-
-                input message: 'Finished using the website? (Click "Proceed" to continue)'
-
-                sh './jenkins/scripts/kill.sh'
-            }
-
+        stage('Build') {
+            sh 'mvn -B -DskipTests clean package'
         }
+
+        stage('Test') {
+            try {
+                sh 'mvn test'
+            } finally {
+                junit 'target/surefire-reports/*.xml'
+            }
+        }
+
+        stage('Deliver') {
+            sh './jenkins/scripts/deliver.sh'
+        }
+
+    } catch (err) {
+        currentBuild.result = 'FAILURE'
+        throw err
     }
+
 }
